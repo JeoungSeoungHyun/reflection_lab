@@ -1,0 +1,73 @@
+package site.metacoding;
+
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import site.metacoding.anno.RequestMapping;
+import site.metacoding.controller.UserController;
+
+@WebServlet("/")
+public class DispatcherSevlet extends HttpServlet {
+	public DispatcherSevlet() {
+	}
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+		String endPoint = req.getRequestURI();
+//		System.out.println("컨텍스트 패스 : " + req.getContextPath());
+		System.out.println("엔드 포인트 : " + endPoint);
+//		System.out.println("전체주소 : " + req.getRequestURL());
+
+		UserController userController = new UserController();
+
+//		if (endPoint.equals("/join")) {
+//			userController.join();
+//		} else if (endPoint.equals("/login")) {
+//			userController.login();
+//		}
+
+		// 리플렉션!!!!! -> 메서드를 런타임시 찾아내서 실행
+		// 변수가 들고 있는 메서드를 알수있다.
+		// declaredMethods는 그 클래스의 메서드만 Methods는 상속받는 메서드까지 알수있다.
+		Method[] methods = userController.getClass().getDeclaredMethods();
+
+//		for (Method method : methods) {
+////			System.out.println(method.getName());
+//			if (endPoint.equals("/" + method.getName())) {
+//				try {
+//					method.invoke(userController);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+
+		for (Method method : methods) { // 4바퀴(join, login, user, hello)
+			Annotation annotation = method.getDeclaredAnnotation(RequestMapping.class);
+			// 다운캐스팅이 필요하게 된다.(그래야 RequestMapping 어노테이션에 있는 추상메서드 사용가능)
+			RequestMapping requestMapping = (RequestMapping) annotation;
+			System.out.println(requestMapping.value());
+
+			if (requestMapping.value().equals(endPoint)) {
+				try {
+					// invoke리턴 타입은 Object이므로 다운캐스팅
+					String path = (String) method.invoke(userController);
+					RequestDispatcher dis = req.getRequestDispatcher(path + "");
+					dis.forward(req, resp);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				break; // 함수 실행시 종료되도록
+			}
+		}
+	}
+}

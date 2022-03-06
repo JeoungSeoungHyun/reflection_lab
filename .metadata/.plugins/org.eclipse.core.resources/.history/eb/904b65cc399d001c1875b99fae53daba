@@ -1,0 +1,5 @@
+package site.metacoding.reflect.domain;
+
+public class User {
+
+}
